@@ -1,0 +1,62 @@
+* {
+	margin: 0px;
+	padding: 0px;
+}
+
+body, html {
+	height: 100%;
+    margin: 0;
+    padding: 0;
+    background: #F2F2F2;
+}
+
+.wrapper {
+	width: 1024px;
+	height: 100%;
+	margin: 0 auto;
+	position: relative;
+}
+
+#canvas-ini {
+	background-color: #D8D8D8;
+	border: 2px solid #A4A4A4;
+	min-height: 90%;
+	position: relative;
+}
+
+/* notification */
+
+.jGrowl-header {
+	font-size: 12px!important;
+}
+
+.redTheme {
+	background: #f44336;
+}
+
+.greenTheme {
+	background: #388E3C;
+}
+
+.orangeTheme {
+	background: #F57C00;
+}
+
+/* button block */
+
+.tool-palette {
+	position: absolute;
+	top: 0;
+	left: 0;
+	border-right: 2px solid grey;
+	border-top: 2px solid grey;
+	border-bottom: 2px solid grey;
+    padding: 10px;
+    background: white;
+    top: 20px;
+    border-radius: 0px 5px 5px 0px;
+}
+
+#you-image {
+	display: none;
+}
