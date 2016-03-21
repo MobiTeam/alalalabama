@@ -40,4 +40,21 @@ function lib_addImageOnCanvas(canvas, imgSrc){
 	}
 }
 
+////////////////////////////////////////////////////////////
+////  Функция удаления выбранного элемента [21.03.2016]   //
+////////////////////////////////////////////////////////////
+
+
+function lib_removeElement(canvas) {
+	
+	var currEl = canvas.getActiveObject(),
+		msg = plc.st.not_el;
+
+	if(currEl){
+		currEl.remove();
+	} else {
+		s_alert(msg, {theme: 'redTheme', life: 2000})
+	}
+	
+}
 

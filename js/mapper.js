@@ -7,7 +7,13 @@ var mapperIni = (function(){
 	var plc = i18n.getLocale(),
 		uSettings = null,
 		dSettigns = {},
-		canvas;
+		canvas,
+		canvListener,
+		mouse = {},
+		x0 = 0,
+		y0 = 0,
+		mousedown = false,
+		started = false;
 
 
 	dSettigns = {
@@ -43,6 +49,8 @@ var mapperIni = (function(){
 			canvas.setHeight(uSettings.height);
 			canvas.setWidth(uSettings.width);
 
+			canvListener = $('.upper-canvas');
+
 
 		} else {
 
@@ -55,7 +63,7 @@ var mapperIni = (function(){
 
 
 		_createButtonPanel();
-		_bindAction();
+		_setUpListeners();
 
 
 		msg = plc.st.in_finish;		
@@ -130,7 +138,30 @@ var mapperIni = (function(){
 					btn_load_file.click();
 				}
 			}).html('<i class="glyphicon glyphicon-floppy-open"></i>')
-			  .appendTo(button_block);
+			  .appendTo(button_block),
+			
+			btn_point = $('<button/>', {
+				class: 'btn btn-default',
+				title: plc.btn.btn_point,
+				click: function(e){
+					canvas.isDrawingMode = !canvas.isDrawingMode;
+				}
+			}).html('<i class="glyphicon glyphicon-pencil"></i>')
+			  .appendTo(button_block),
+
+			btn_remove_el = $('<button/>', {
+				class: 'btn btn-default',
+				title: plc.btn.btn_rem,
+				click: function(e) {
+
+					canvas.isDrawingMode = false;
+					lib_removeElement(canvas);					
+					
+				}
+			}).html('<i class="glyphicon glyphicon-remove"></i>')
+			  .appendTo(button_block);  
+
+
 		
 		// button_block.append('<button class="btn btn-default" title="Включить режим редактирования"><i class="glyphicon glyphicon-pencil"></i></button>');
 		// button_block.append('<button class="btn btn-default" title="Закрепить карту"><i class="glyphicon glyphicon-pushpin"></i></button>');
@@ -138,7 +169,7 @@ var mapperIni = (function(){
 		// button_block.append('<button class="btn btn-success" title="Загрузить изображение"><i class="glyphicon glyphicon-floppy-open"></i></button>');
 		// button_block.append('<button class="btn btn-danger" title="Сохранить результат редактирования"><i class="glyphicon glyphicon-floppy-save"></i></button>');
 
-		$("#" + uSettings.id).append(button_block);
+		// $("#" + uSettings.id).append(button_block);
 		
 		msg = plc.st.btn_sc;
 		_log(msg); 
@@ -148,9 +179,71 @@ var mapperIni = (function(){
 	
 	}
 
-	function _bindAction() {
-
+	function _setUpListeners() {
+		
+		canvListener.on('mouseup', _mouseup);
+		canvListener.on('mousedown', _mousedown);
+		canvListener.on('mousemove', _startTracking);
+		canvListener.on('mouseleave', _stopTracking);
 		return true;
+
+	}
+
+	function _mouseup(e) {
+		
+		_log('up');
+
+		mousedown = false;
+
+	}
+
+	function _mousedown(e) {
+		
+		_log('down');
+
+		mousedown = true;
+
+		x0 = _getCursorCoordinate(e).x;
+		y0 = _getCursorCoordinate(e).y;
+
+		console.log(x0 + " " + y0);
+
+	}
+
+	function _startTracking(e) {
+		
+		_log('start');
+
+		mouse.x = _getCursorCoordinate(e).x;
+		mouse.y = _getCursorCoordinate(e).y;
+
+		e.preventDefault();
+
+		if(mousedown) {
+			if(!started) {
+
+			} else {
+
+			}
+		}
+		
+
+	}
+
+	function _stopTracking() {
+		_log('stop');
+	}
+
+	function _getCursorCoordinate(e) {
+		
+		var mouseX = e.pageX - canvListener.offset().left,
+			mouseY = e.pageY - canvListener.offset().top;
+
+		return {
+			x: mouseX,
+			y: mouseY
+		}
+
 	}
 
 	function _checkParametres(parametres) {

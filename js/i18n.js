@@ -17,7 +17,9 @@ var i18n = (function(){
 			crt: 'Создать',
 			upd: 'Обновить',
 			load_img: 'Загрузить изображение',
-			cls_all: 'Закрыть все'
+			cls_all: 'Закрыть все',
+			btn_point: 'Нарисовать контур',
+			btn_rem: 'Удалить фигуру'
 		},
 		err: {
 			ftl: 'Критическая ошибка',
@@ -35,7 +37,8 @@ var i18n = (function(){
 			set_def: 'Стандартные настройки применены',
 			form_send: 'Форма отправлена',
 			sc_dt: 'Данные успешно отправлены',
-			btn_sc: 'Интерфейс успешно загружен'
+			btn_sc: 'Интерфейс успешно загружен',
+			not_el: 'Необходимо выбрать какой-нибудь объект'
 		}
 			
 	}                                            
@@ -50,7 +53,9 @@ var i18n = (function(){
 			crt: 'Create',
 			upd: 'Update',
 			cls_all: 'Close all',
-			load_img: 'Load image'
+			load_img: 'Load image',
+			btn_point: 'Draw path',
+			btn_rem: 'Remove object'
 		},
 		err: {
 			ftl: 'Critical error',
@@ -68,7 +73,8 @@ var i18n = (function(){
 			set_def: 'Default settings are applied',
 			form_send: 'Form sending',
 			sc_dt: 'Successfully sent',
-			btn_sc: 'Interface successfully loaded'
+			btn_sc: 'Interface successfully loaded',
+			not_el: 'You need to select any object'
 					
 		}
 			
