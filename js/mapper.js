@@ -90,11 +90,76 @@ var mapperIni = (function(){
 		return false;
 	}
 
+	function _toolPaleteTagButton(btn) {
+
+		$('.tool-palette .active').removeClass('active');
+		btn.addClass('active');
+		console.log(btn);
+	}
+
 	function _createButtonPanel() {
 
 		var button_block = $('<div/>', {
 				class: 'btn-group-vertical tool-palette',
+				click: function(e) {
+
+					var eventEl;
+					
+					switch(e.target.tagName) {
+						
+						case 'BUTTON':
+							eventEl = $(e.target); 
+						break;
+
+						case 'I':
+							eventEl = $(e.target.parentNode);
+						break;
+
+						default:
+							eventEl = null;
+						break;
+
+					}
+
+					if(!!eventEl && !eventEl.hasClass('active')) {
+						$('.tool-palette .active').removeClass('active');
+						eventEl.addClass('active');
+					} else if(!!eventEl && eventEl.hasClass('active')){
+						$('.tool-palette .active').removeClass('active');
+					}
+	
+				}
 			}).appendTo($("#" + uSettings.id)),
+
+			btn_cursor = $('<button/>', {
+				class: 'btn btn-default',
+				title: plc.btn.cursor,
+				click: function(){
+					canvas.isDrawingMode = false;
+				}
+			}).html('<i class="glyphicon glyphicon-hand-up"></i>')
+			  .appendTo(button_block),
+
+			btn_point = $('<button/>', {
+				class: 'btn btn-default',
+				title: plc.btn.btn_point,
+				click: function(e) {
+					canvas.isDrawingMode = !canvas.isDrawingMode;
+				}
+			}).html('<i class="glyphicon glyphicon-pencil"></i>')
+			  .appendTo(button_block),
+
+			btn_remove_el = $('<button/>', {
+				class: 'btn btn-default',
+				title: plc.btn.btn_rem,
+				click: function(e) {
+
+					canvas.isDrawingMode = false;
+					lib_removeElement(canvas);					
+					
+				}
+			}).html('<i class="glyphicon glyphicon-remove"></i>')
+			  .appendTo(button_block),
 
 			load_form = $('<form/>', {
 				method: 'post',
@@ -120,7 +185,7 @@ var mapperIni = (function(){
 						}
 					})
 				}
-			}).appendTo(button_block),
+			}).appendTo(button_block),  
 
 			btn_load_file = $('<input/>', {
 				type: 'file',
@@ -138,39 +203,8 @@ var mapperIni = (function(){
 					btn_load_file.click();
 				}
 			}).html('<i class="glyphicon glyphicon-floppy-open"></i>')
-			  .appendTo(button_block),
-			
-			btn_point = $('<button/>', {
-				class: 'btn btn-default',
-				title: plc.btn.btn_point,
-				click: function(e){
-					canvas.isDrawingMode = !canvas.isDrawingMode;
-				}
-			}).html('<i class="glyphicon glyphicon-pencil"></i>')
-			  .appendTo(button_block),
+			  .appendTo(button_block);
 
-			btn_remove_el = $('<button/>', {
-				class: 'btn btn-default',
-				title: plc.btn.btn_rem,
-				click: function(e) {
-
-					canvas.isDrawingMode = false;
-					lib_removeElement(canvas);					
-					
-				}
-			}).html('<i class="glyphicon glyphicon-remove"></i>')
-			  .appendTo(button_block);  
-
-
-		
-		// button_block.append('<button class="btn btn-default" title="Включить режим редактирования"><i class="glyphicon glyphicon-pencil"></i></button>');
-		// button_block.append('<button class="btn btn-default" title="Закрепить карту"><i class="glyphicon glyphicon-pushpin"></i></button>');
-		// button_block.append('<button class="btn btn-default" title="Отменить действие"><i class="glyphicon glyphicon-arrow-left"></i></button>');
-		// button_block.append('<button class="btn btn-success" title="Загрузить изображение"><i class="glyphicon glyphicon-floppy-open"></i></button>');
-		// button_block.append('<button class="btn btn-danger" title="Сохранить результат редактирования"><i class="glyphicon glyphicon-floppy-save"></i></button>');
-
-		// $("#" + uSettings.id).append(button_block);
-		
 		msg = plc.st.btn_sc;
 		_log(msg); 
 		if(uSettings.showMessage) s_alert(msg, {theme: 'greenTheme', life: 2500})
