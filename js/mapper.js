@@ -4,24 +4,30 @@
 
 var mapperIni = (function(){
 
-	var plc = i18n.getLocale(),
-		uSettings = null,
-		dSettigns = {},
+	var plc = i18n.getLocale(), // загрузка локали
+		
 		canvas,
 		canvListener,
+		
 		mouse = {},
+		
 		x0 = 0,
 		y0 = 0,
 		mousedown = false,
-		started = false;
+		started = false,
+		
+		uSettings = null,
+		dSettigns = {
+			width: $('#canvas-ini').width(),
+			height: $('#canvas-ini').height(),
+			id: 'canvas-ini',
+			showMessage: true
+		}, 
 
+		currentEditingZone,
+		scale = scaleX = scaleY = 1,
+		markerColor = '#2567d5';
 
-	dSettigns = {
-		width: $('#canvas-ini').width(),
-		height: $('#canvas-ini').height(),
-		id: 'canvas-ini',
-		showMessage: true
-	}
 
 
 	function init() {
@@ -44,14 +50,15 @@ var mapperIni = (function(){
 
 			$("#" + uSettings.id).append(canvasBlock);
 
-			canvas = new fabric.Canvas('canvas-block');
+			canvas = new fabric.Canvas('canvas-block', {
+				scale: 1
+			});
 
 			canvas.setHeight(uSettings.height);
 			canvas.setWidth(uSettings.width);
 
 			canvListener = $('.upper-canvas');
-
-
+			
 		} else {
 
 			msg = plc.err.bad_sel;
@@ -61,11 +68,9 @@ var mapperIni = (function(){
 		
 		}
 
-
 		_createButtonPanel();
 		_setUpListeners();
-
-
+		
 		msg = plc.st.in_finish;		
 
 		_log(msg); 
@@ -89,6 +94,124 @@ var mapperIni = (function(){
 
 		return false;
 	}
+
+	return {
+		init : init,
+		set : set
+	}
+
+
+function _getCurrentAction() {
+	return $('.tool-palette .active').attr('action');
+}
+
+function _setUpListeners() {
+	
+	canvas.on('mouse:down', function (options) {
+
+		switch(_getCurrentAction()){
+
+			case 'drawning_zone':
+				_addExtendZone(options.e);
+			break;
+
+			default:
+			break;
+		}
+
+		
+	}).on('mouse:move', function (options) {
+
+		switch(_getCurrentAction()){
+
+			case 'drawning_zone':
+				drawZone(options.e);
+			break;
+
+			default:
+			break;
+
+		}
+	
+	});
+
+	$(document).on('dblclick', finishZone).on('keydown', undoZonePoint);
+
+}
+
+
+// Вспомогательная функция для получения координат, учитывающих текущий масштаб
+function convertPointToRelative(point, object) {
+
+	return { x: (point.x - object.left) / scale, y: (point.y - object.top) / scale };
+};
+
+function _addExtendZone(mouseEvent) {
+	var position = canvas.getPointer(mouseEvent);
+
+	console.log(position);
+
+	// Новая точка уже существующей зоны
+	if (currentEditingZone) {
+		currentEditingZone.points.push(convertPointToRelative(position, currentEditingZone));
+		return;
+	}
+	// Новая зона - сделаем сразу 3 точки, тогда визуально зона будет линией
+	currentEditingZone = new fabric.Polygon(
+		[{ x: 1, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 2 }], {
+		scaleX: scale, 
+		scaleY: scale, 
+		left: position.x,
+		top: position.y,
+		fill: new fabric.Color(markerColor).setAlpha(0.3).toRgba(),
+		stroke: '#2e69b6',
+		selectable: true
+	});
+
+
+	 
+
+	canvas.add(currentEditingZone);
+	canvas.renderAll();
+};
+
+function drawZone(mouseEvent) {
+	var points;
+	if (currentEditingZone) {
+		// При перемещении мыши меняем только последнюю точку, следуя за курсором
+		points = currentEditingZone.points;
+		points[points.length - 1] = convertPointToRelative(canvas.getPointer(mouseEvent), currentEditingZone);
+		canvas.renderAll();
+	}
+};
+
+function finishZone() {
+	if (!currentEditingZone) {
+		return;
+	}
+	
+	// Уберём последнюю точку, так как клик двойной
+	currentEditingZone.points.pop();
+	currentEditingZone = null;
+};
+
+function undoZonePoint(event) {
+	// Только backspace и delete
+	if (currentEditingZone && (event.which == 8 || event.which == 46)) {
+		var points = currentEditingZone.points,
+			isDeleted = points.length <= 3;
+		points[points.length - 2] = points[points.length - 1];
+		points.pop();
+		// Отмена зоны вообще
+		if (isDeleted) {
+			canvas.remove(currentEditingZone);
+			currentEditingZone = null;
+		}
+		canvas.renderAll();
+		event.preventDefault();
+	}
+};
+
 
 	function _toolPaleteTagButton(btn) {
 
@@ -136,18 +259,18 @@ var mapperIni = (function(){
 				title: plc.btn.cursor,
 				click: function(){
 					canvas.isDrawingMode = false;
-				}
-			}).html('<i class="glyphicon glyphicon-hand-up"></i>')
-			  .appendTo(button_block),
+				},
+				html: '<i class="glyphicon glyphicon-hand-up"></i>'
+			}).appendTo(button_block),
 
 			btn_point = $('<button/>', {
 				class: 'btn btn-default',
 				title: plc.btn.btn_point,
 				click: function(e) {
 					canvas.isDrawingMode = !canvas.isDrawingMode;
-				}
-			}).html('<i class="glyphicon glyphicon-pencil"></i>')
-			  .appendTo(button_block),
+				},
+				html: '<i class="glyphicon glyphicon-pencil"></i>'
+			}).appendTo(button_block),
 
 			btn_remove_el = $('<button/>', {
 				class: 'btn btn-default',
@@ -157,9 +280,9 @@ var mapperIni = (function(){
 					canvas.isDrawingMode = false;
 					lib_removeElement(canvas);					
 					
-				}
-			}).html('<i class="glyphicon glyphicon-remove"></i>')
-			  .appendTo(button_block),
+				},
+				html: '<i class="glyphicon glyphicon-remove"></i>'
+			}).appendTo(button_block),
 
 			load_form = $('<form/>', {
 				method: 'post',
@@ -180,7 +303,10 @@ var mapperIni = (function(){
       					dataType: 'json',
       					success: function(json) {
       						if(json && !json.error_flag){
-      							lib_addImageOnCanvas(canvas, json.img_src);
+
+      							_loadMap(json.img_src);
+
+      							//lib_addImageOnCanvas(canvas, json.img_src);
 					        }
 						}
 					})
@@ -195,15 +321,24 @@ var mapperIni = (function(){
 					load_form.submit();
 				},
 			}).appendTo(load_form),
-		
+			
+			btn_draw_zone = $('<button/>', {
+				class: 'btn btn-default',
+				title: plc.btn.drarea,
+				action: "drawning_zone",
+				html: '<i class="glyphicon glyphicon-unchecked"></i>'
+			}).appendTo(button_block),
+
 			btn_load = $('<button/>', {
 				class: 'btn btn-success',
 				title: plc.btn.load_img,
 				click: function(e){
 					btn_load_file.click();
-				}
-			}).html('<i class="glyphicon glyphicon-floppy-open"></i>')
-			  .appendTo(button_block);
+				},
+				html: '<i class="glyphicon glyphicon-floppy-open"></i>'
+			}).appendTo(button_block);
+
+			
 
 		msg = plc.st.btn_sc;
 		_log(msg); 
@@ -213,19 +348,19 @@ var mapperIni = (function(){
 	
 	}
 
-	function _setUpListeners() {
+	// function _setUpListeners() {
 		
-		canvListener.on('mouseup', _mouseup);
-		canvListener.on('mousedown', _mousedown);
-		canvListener.on('mousemove', _startTracking);
-		canvListener.on('mouseleave', _stopTracking);
-		return true;
+		// canvListener.on('mouseup', _mouseup);
+		// canvListener.on('mousedown', _mousedown);
+		// canvListener.on('mousemove', _startTracking);
+		// canvListener.on('mouseleave', _stopTracking);
+	// 	return true;
 
-	}
+	// }
 
 	function _mouseup(e) {
 		
-		_log('up');
+		// _log('up');
 
 		mousedown = false;
 
@@ -233,7 +368,7 @@ var mapperIni = (function(){
 
 	function _mousedown(e) {
 		
-		_log('down');
+		// _log('down');
 
 		mousedown = true;
 
@@ -246,7 +381,7 @@ var mapperIni = (function(){
 
 	function _startTracking(e) {
 		
-		_log('start');
+		// _log('start');
 
 		mouse.x = _getCursorCoordinate(e).x;
 		mouse.y = _getCursorCoordinate(e).y;
@@ -347,13 +482,6 @@ var mapperIni = (function(){
 		$.ajax(obj)
 
 	}
-
-
-	return {
-		init : init,
-		set : set
-	}
-
 
 }())
 
