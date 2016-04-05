@@ -6,16 +6,10 @@ var mapperIni = (function(){
 
 	var plc = i18n.getLocale(), // загрузка локали
 		
-		canvas,
-		canvListener,
+		canvas, // холст canvas fabric.js
+		canvListener, // слушатель событий на canvas
 		
-		mouse = {},
-		
-		x0 = 0,
-		y0 = 0,
-		mousedown = false,
-		started = false,
-		
+		// определение настроек
 		uSettings = null,
 		dSettigns = {
 			width: $('#canvas-ini').width(),
@@ -29,7 +23,7 @@ var mapperIni = (function(){
 		markerColor = '#2567d5';
 
 
-
+	// блок инициализации
 	function init() {
 
 		var msg = "";
@@ -101,125 +95,118 @@ var mapperIni = (function(){
 	}
 
 
-function _getCurrentAction() {
-	return $('.tool-palette .active').attr('action');
-}
+	function _getCurrentAction() {
+		return $('.tool-palette .active').attr('action');
+	}
 
-function _setUpListeners() {
-	
-	canvas.on('mouse:down', function (options) {
-
-		switch(_getCurrentAction()){
-
-			case 'drawning_zone':
-				_addExtendZone(options.e);
-			break;
-
-			default:
-			break;
-		}
-
+	function _setUpListeners() {
 		
-	}).on('mouse:move', function (options) {
+		canvas.on('mouse:down', function (options) {
 
-		switch(_getCurrentAction()){
+			switch(_getCurrentAction()){
 
-			case 'drawning_zone':
-				drawZone(options.e);
-			break;
+				case 'drawning_zone':
+					_addExtendZone(options.e);
+				break;
 
-			default:
-			break;
+				default:
+				break;
+			}
 
+			
+		}).on('mouse:move', function (options) {
+
+			switch(_getCurrentAction()){
+
+				case 'drawning_zone':
+					_drawZone(options.e);
+				break;
+
+				default:
+				break;
+
+			}
+		
+		});
+
+		$(document).on('dblclick', _finishZone).on('keydown', _undoZonePoint);
+
+	}
+
+
+	// Вспомогательная функция для получения координат, учитывающих текущий масштаб
+	function _convertPointToRelative(point, object) {
+
+		return { x: (point.x - object.left) / scale, y: (point.y - object.top) / scale };
+
+	};
+
+	// добавлние новой области выделения
+	function _addExtendZone(mouseEvent) {
+		
+		var position = canvas.getPointer(mouseEvent);
+
+		// Новая точка уже существующей зоны
+		if (currentEditingZone) {
+			currentEditingZone.points.push(_convertPointToRelative(position, currentEditingZone));
+			return;
 		}
-	
-	});
-
-	$(document).on('dblclick', finishZone).on('keydown', undoZonePoint);
-
-}
-
-
-// Вспомогательная функция для получения координат, учитывающих текущий масштаб
-function convertPointToRelative(point, object) {
-
-	return { x: (point.x - object.left) / scale, y: (point.y - object.top) / scale };
-};
-
-function _addExtendZone(mouseEvent) {
-	var position = canvas.getPointer(mouseEvent);
-
-	console.log(position);
-
-	// Новая точка уже существующей зоны
-	if (currentEditingZone) {
-		currentEditingZone.points.push(convertPointToRelative(position, currentEditingZone));
-		return;
-	}
-	// Новая зона - сделаем сразу 3 точки, тогда визуально зона будет линией
-	currentEditingZone = new fabric.Polygon(
-		[{ x: 1, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 2 }], {
-		scaleX: scale, 
-		scaleY: scale, 
-		left: position.x,
-		top: position.y,
-		fill: new fabric.Color(markerColor).setAlpha(0.3).toRgba(),
-		stroke: '#2e69b6',
-		selectable: true
-	});
-
-
-	 
-
-	canvas.add(currentEditingZone);
-	canvas.renderAll();
-};
-
-function drawZone(mouseEvent) {
-	var points;
-	if (currentEditingZone) {
-		// При перемещении мыши меняем только последнюю точку, следуя за курсором
-		points = currentEditingZone.points;
-		points[points.length - 1] = convertPointToRelative(canvas.getPointer(mouseEvent), currentEditingZone);
+		// Новая зона - сделаем сразу 3 точки, тогда визуально зона будет линией
+		currentEditingZone = new fabric.Polygon(
+			[{ x: 1, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 2 }], {
+			scaleX: scale, 
+			scaleY: scale, 
+			left: position.x,
+			top: position.y,
+			fill: new fabric.Color(markerColor).setAlpha(0.3).toRgba(),
+			stroke: '#2e69b6',
+			selectable: true
+		});
+		
+		canvas.add(currentEditingZone);
 		canvas.renderAll();
-	}
-};
+	};
 
-function finishZone() {
-	if (!currentEditingZone) {
-		return;
-	}
-	
-	// Уберём последнюю точку, так как клик двойной
-	currentEditingZone.points.pop();
-	currentEditingZone = null;
-};
-
-function undoZonePoint(event) {
-	// Только backspace и delete
-	if (currentEditingZone && (event.which == 8 || event.which == 46)) {
-		var points = currentEditingZone.points,
-			isDeleted = points.length <= 3;
-		points[points.length - 2] = points[points.length - 1];
-		points.pop();
-		// Отмена зоны вообще
-		if (isDeleted) {
-			canvas.remove(currentEditingZone);
-			currentEditingZone = null;
+	function _drawZone(mouseEvent) {
+		var points;
+		if (currentEditingZone) {
+			// При перемещении мыши меняем только последнюю точку, следуя за курсором
+			points = currentEditingZone.points;
+			points[points.length - 1] = _convertPointToRelative(canvas.getPointer(mouseEvent), currentEditingZone);
+			canvas.renderAll();
 		}
-		canvas.renderAll();
-		event.preventDefault();
-	}
-};
+	};
+
+	function _finishZone() {
+
+		if (!currentEditingZone) {
+			return;
+		}
+		
+		// Уберём последнюю точку, так как клик двойной
+		currentEditingZone.points.pop();
+		currentEditingZone = null;
+	};
+
+	function _undoZonePoint(event) {
+		// Только backspace и delete
+		if (currentEditingZone && (event.which == 8 || event.which == 46)) {
+			var points = currentEditingZone.points,
+				isDeleted = points.length <= 3;
+			points[points.length - 2] = points[points.length - 1];
+			points.pop();
+			// Отмена зоны вообще
+			if (isDeleted) {
+				canvas.remove(currentEditingZone);
+				currentEditingZone = null;
+			}
+			canvas.renderAll();
+			event.preventDefault();
+		}
+	};
 
 
-	function _toolPaleteTagButton(btn) {
-
-		$('.tool-palette .active').removeClass('active');
-		btn.addClass('active');
-		console.log(btn);
-	}
-
+	// динамическое создание
 	function _createButtonPanel() {
 
 		var button_block = $('<div/>', {
@@ -304,9 +291,9 @@ function undoZonePoint(event) {
       					success: function(json) {
       						if(json && !json.error_flag){
 
-      							_loadMap(json.img_src);
+      							//_loadMap(json.img_src);
 
-      							//lib_addImageOnCanvas(canvas, json.img_src);
+      							lib_addImageOnCanvas(canvas, json.img_src);
 					        }
 						}
 					})
@@ -348,72 +335,6 @@ function undoZonePoint(event) {
 	
 	}
 
-	// function _setUpListeners() {
-		
-		// canvListener.on('mouseup', _mouseup);
-		// canvListener.on('mousedown', _mousedown);
-		// canvListener.on('mousemove', _startTracking);
-		// canvListener.on('mouseleave', _stopTracking);
-	// 	return true;
-
-	// }
-
-	function _mouseup(e) {
-		
-		// _log('up');
-
-		mousedown = false;
-
-	}
-
-	function _mousedown(e) {
-		
-		// _log('down');
-
-		mousedown = true;
-
-		x0 = _getCursorCoordinate(e).x;
-		y0 = _getCursorCoordinate(e).y;
-
-		console.log(x0 + " " + y0);
-
-	}
-
-	function _startTracking(e) {
-		
-		// _log('start');
-
-		mouse.x = _getCursorCoordinate(e).x;
-		mouse.y = _getCursorCoordinate(e).y;
-
-		e.preventDefault();
-
-		if(mousedown) {
-			if(!started) {
-
-			} else {
-
-			}
-		}
-		
-
-	}
-
-	function _stopTracking() {
-		_log('stop');
-	}
-
-	function _getCursorCoordinate(e) {
-		
-		var mouseX = e.pageX - canvListener.offset().left,
-			mouseY = e.pageY - canvListener.offset().top;
-
-		return {
-			x: mouseX,
-			y: mouseY
-		}
-
-	}
 
 	function _checkParametres(parametres) {
 
@@ -487,3 +408,74 @@ function undoZonePoint(event) {
 
 
 
+
+
+
+
+
+	// function _setUpListeners() {
+		
+		// canvListener.on('mouseup', _mouseup);
+		// canvListener.on('mousedown', _mousedown);
+		// canvListener.on('mousemove', _startTracking);
+		// canvListener.on('mouseleave', _stopTracking);
+	// 	return true;
+
+	// }
+
+	// function _mouseup(e) {
+		
+	// 	// _log('up');
+
+	// 	mousedown = false;
+
+	// }
+
+	// function _mousedown(e) {
+		
+	// 	// _log('down');
+
+	// 	mousedown = true;
+
+	// 	x0 = _getCursorCoordinate(e).x;
+	// 	y0 = _getCursorCoordinate(e).y;
+
+	// 	console.log(x0 + " " + y0);
+
+	// }
+
+	// function _startTracking(e) {
+		
+	// 	// _log('start');
+
+	// 	mouse.x = _getCursorCoordinate(e).x;
+	// 	mouse.y = _getCursorCoordinate(e).y;
+
+	// 	e.preventDefault();
+
+	// 	if(mousedown) {
+	// 		if(!started) {
+
+	// 		} else {
+
+	// 		}
+	// 	}
+		
+
+	// }
+
+	// function _stopTracking() {
+	// 	_log('stop');
+	// }
+
+	// function _getCursorCoordinate(e) {
+		
+	// 	var mouseX = e.pageX - canvListener.offset().left,
+	// 		mouseY = e.pageY - canvListener.offset().top;
+
+	// 	return {
+	// 		x: mouseX,
+	// 		y: mouseY
+	// 	}
+
+	// }
