@@ -1,14 +1,13 @@
-/////////////////////////////////////////////////////////////////////////////////////////
-// Basic object includes methods for initialization and configuration   [19.03.2016]  ///
-/////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////
+// Базовый модуль, включающий методы инициализации и рисования  [05.04.2016]  ///
+/////////////////////////////////////////////////////////////////////////////////
 
 var mapperIni = (function(){
 
 	var plc = i18n.getLocale(), // загрузка локали
 		
 		canvas, // холст canvas fabric.js
-		canvListener, // слушатель событий на canvas
-		
+			
 		// определение настроек
 		uSettings = null,
 		dSettigns = {
@@ -18,7 +17,13 @@ var mapperIni = (function(){
 			showMessage: true
 		}, 
 
-		currentEditingZone,
+		// текущее состояние
+		state = {
+			currentObject : null,
+			currentAction : null
+		},
+
+		// параметры рисования
 		scale = scaleX = scaleY = 1,
 		markerColor = '#2567d5';
 
@@ -51,8 +56,6 @@ var mapperIni = (function(){
 			canvas.setHeight(uSettings.height);
 			canvas.setWidth(uSettings.width);
 
-			canvListener = $('.upper-canvas');
-			
 		} else {
 
 			msg = plc.err.bad_sel;
@@ -95,18 +98,18 @@ var mapperIni = (function(){
 	}
 
 
-	function _getCurrentAction() {
-		return $('.tool-palette .active').attr('action');
+	function _getCurrentTool() {
+		return $('.tool-palette .active').attr('data-tool');
 	}
 
 	function _setUpListeners() {
 		
-		canvas.on('mouse:down', function (options) {
+		canvas.on('mouse:down', function (event) {
 
-			switch(_getCurrentAction()){
+			switch(_getCurrentTool()){
 
-				case 'drawning_zone':
-					_addExtendZone(options.e);
+				case 'lasso':
+					_addExtendZone(event);
 				break;
 
 				default:
@@ -114,12 +117,12 @@ var mapperIni = (function(){
 			}
 
 			
-		}).on('mouse:move', function (options) {
+		}).on('mouse:move', function (event) {
 
-			switch(_getCurrentAction()){
+			switch(_getCurrentTool()){
 
-				case 'drawning_zone':
-					_drawZone(options.e);
+				case 'lasso':
+					_drawZone(event);
 				break;
 
 				default:
@@ -129,81 +132,147 @@ var mapperIni = (function(){
 		
 		});
 
-		$(document).on('dblclick', _finishZone).on('keydown', _undoZonePoint);
+		//$(document).on('dblclick', _finishZone).on('keydown', _undoZonePoint);
 
 	}
 
-
-	// Вспомогательная функция для получения координат, учитывающих текущий масштаб
-	function _convertPointToRelative(point, object) {
-
-		return { x: (point.x - object.left) / scale, y: (point.y - object.top) / scale };
-
-	};
-
-	// добавлние новой области выделения
+	// добавление новой области выделения
 	function _addExtendZone(mouseEvent) {
-		
-		var position = canvas.getPointer(mouseEvent);
 
-		// Новая точка уже существующей зоны
-		if (currentEditingZone) {
-			currentEditingZone.points.push(_convertPointToRelative(position, currentEditingZone));
-			return;
-		}
-		// Новая зона - сделаем сразу 3 точки, тогда визуально зона будет линией
-		currentEditingZone = new fabric.Polygon(
-			[{ x: 1, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 2 }], {
-			scaleX: scale, 
-			scaleY: scale, 
-			left: position.x,
-			top: position.y,
-			fill: new fabric.Color(markerColor).setAlpha(0.3).toRgba(),
-			stroke: '#2e69b6',
-			selectable: true
-		});
-		
-		canvas.add(currentEditingZone);
-		canvas.renderAll();
-	};
+		var pos = canvas.getPointer(mouseEvent.e);
 
+		if(state.currentAction === "add") {
+			
+			var polygon = new fabric.Polygon([
+					{
+						x: pos.x,
+						y: pos.y
+					},
+					{
+						x: pos.x + 0.5,
+						y: pos.y + 0.5
+					}
+				], {
+					fill: 'blue',
+					opacity: 0.25,
+					selectable: false,
+					stroke: '#2e69b6'
+				}
+			);
+
+			state.currentObject = polygon;
+			canvas.add(polygon);
+			state.currentAction = "edit";
+
+		} else if(state.currentAction === "edit" && state.currentObject && state.currentObject.type === "polygon") {
+
+			var points = state.currentObject.get('points');
+
+			points.push({
+				x: pos.x - state.currentObject.get("left"),
+				y: pos.y - state.currentObject.get("top")
+			});
+
+			state.currentObject.set({
+				points: points
+			});
+
+			canvas.renderAll();
+
+		}		
+
+	}
+
+	// перерисовка области выделения
 	function _drawZone(mouseEvent) {
-		var points;
-		if (currentEditingZone) {
-			// При перемещении мыши меняем только последнюю точку, следуя за курсором
-			points = currentEditingZone.points;
-			points[points.length - 1] = _convertPointToRelative(canvas.getPointer(mouseEvent), currentEditingZone);
+
+		if(state.currentAction === "edit" && state.currentObject) {
+
+			var pos = canvas.getPointer(mouseEvent.e),
+				points = state.currentObject.get("points");
+
+			points[points.length - 1].x = pos.x - state.currentObject.get("left");
+			points[points.length - 1].y = pos.y - state.currentObject.get("top");
+
+			state.currentObject.set({
+				points: points
+			});	
+
 			canvas.renderAll();
 		}
-	};
 
-	function _finishZone() {
+	}
 
-		if (!currentEditingZone) {
-			return;
-		}
+	// // Вспомогательная функция для получения координат, учитывающих текущий масштаб
+	// function _convertPointToRelative(point, object) {
+
+	// 	return { x: (point.x - object.left) / scale, y: (point.y - object.top) / scale };
+
+	// };
+
+	// // добавлние новой области выделения
+	// function _addExtendZone(mouseEvent) {
 		
-		// Уберём последнюю точку, так как клик двойной
-		currentEditingZone.points.pop();
-		currentEditingZone = null;
-	};
+	// 	var position = canvas.getPointer(mouseEvent);
 
-	function _undoZonePoint(event) {
-		// Только backspace и delete
-		if (currentEditingZone && (event.which == 8 || event.which == 46)) {
-			var points = currentEditingZone.points,
-				isDeleted = points.length <= 3;
-			points[points.length - 2] = points[points.length - 1];
-			points.pop();
-			// Отмена зоны вообще
-			if (isDeleted) {
-				canvas.remove(currentEditingZone);
-				currentEditingZone = null;
-			}
-			canvas.renderAll();
-			event.preventDefault();
-		}
-	};
+	// 	// Новая точка уже существующей зоны
+	// 	if (currentEditingZone) {
+	// 		currentEditingZone.points.push(_convertPointToRelative(position, currentEditingZone));
+	// 		return;
+	// 	}
+	// 	// Новая зона - сделаем сразу 3 точки, тогда визуально зона будет линией
+	// 	currentEditingZone = new fabric.Polygon(
+	// 		[{ x: 1, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 2 }], {
+	// 		scaleX: scale, 
+	// 		scaleY: scale, 
+	// 		left: position.x,
+	// 		top: position.y,
+	// 		fill: new fabric.Color(markerColor).setAlpha(0.3).toRgba(),
+	// 		stroke: '#2e69b6',
+	// 		selectable: true
+	// 	});
+
+	// 	canvas.add(currentEditingZone);
+	// 	canvas.renderAll();
+	// };
+
+	// function _drawZone(mouseEvent) {
+	// 	var points;
+	// 	if (currentEditingZone) {
+	// 		// При перемещении мыши меняем только последнюю точку, следуя за курсором
+	// 		points = currentEditingZone.points;
+	// 		points[points.length - 1] = _convertPointToRelative(canvas.getPointer(mouseEvent), currentEditingZone);
+	// 		canvas.renderAll();
+	// 	}
+	// };
+
+	// function _finishZone() {
+
+	// 	if (!currentEditingZone) {
+	// 		return;
+	// 	}
+		
+	// 	// Уберём последнюю точку, так как клик двойной
+	// 	currentEditingZone.points.pop();
+	// 	currentEditingZone = null;
+	// };
+
+	// function _undoZonePoint(event) {
+	// 	// Только backspace и delete
+	// 	if (currentEditingZone && (event.which == 8 || event.which == 46)) {
+	// 		var points = currentEditingZone.points,
+	// 			isDeleted = points.length <= 3;
+	// 		points[points.length - 2] = points[points.length - 1];
+	// 		points.pop();
+	// 		// Отмена зоны вообще
+	// 		if (isDeleted) {
+	// 			canvas.remove(currentEditingZone);
+	// 			currentEditingZone = null;
+	// 		}
+	// 		canvas.renderAll();
+	// 		event.preventDefault();
+	// 	}
+	// };
 
 
 	// динамическое создание
@@ -211,33 +280,8 @@ var mapperIni = (function(){
 
 		var button_block = $('<div/>', {
 				class: 'btn-group-vertical tool-palette',
-				click: function(e) {
-
-					var eventEl;
-					
-					switch(e.target.tagName) {
-						
-						case 'BUTTON':
-							eventEl = $(e.target); 
-						break;
-
-						case 'I':
-							eventEl = $(e.target.parentNode);
-						break;
-
-						default:
-							eventEl = null;
-						break;
-
-					}
-
-					if(!!eventEl && !eventEl.hasClass('active')) {
-						$('.tool-palette .active').removeClass('active');
-						eventEl.addClass('active');
-					} else if(!!eventEl && eventEl.hasClass('active')){
-						$('.tool-palette .active').removeClass('active');
-					}
-	
+				click: function(e){
+					_changeTool(e);	
 				}
 			}).appendTo($("#" + uSettings.id)),
 
@@ -312,7 +356,7 @@ var mapperIni = (function(){
 			btn_draw_zone = $('<button/>', {
 				class: 'btn btn-default',
 				title: plc.btn.drarea,
-				action: "drawning_zone",
+				"data-tool": "lasso",
 				html: '<i class="glyphicon glyphicon-unchecked"></i>'
 			}).appendTo(button_block),
 
@@ -335,7 +379,45 @@ var mapperIni = (function(){
 	
 	}
 
+	// смена активного инструмента
+	function _changeTool(e) {
 
+		var eventEl;
+		
+		switch(e.target.tagName) {
+			
+			case 'BUTTON':
+				eventEl = $(e.target); 
+			break;
+
+			case 'I':
+				eventEl = $(e.target.parentNode);
+			break;
+
+			default:
+				eventEl = null;
+			break;
+
+		}
+
+		if(!!eventEl && !eventEl.hasClass('active')) {
+			$('.tool-palette .active').removeClass('active');
+			eventEl.addClass('active');
+		} else if(!!eventEl && eventEl.hasClass('active')){
+			$('.tool-palette .active').removeClass('active');
+		}
+
+		_resetAction();
+
+	}
+
+	// сброс текущего действия и активного элемента
+	function _resetAction() {
+		state.currentAction = "add";
+		state.currentObject = null;
+	}
+
+	// проверка и установка параметров инициализации
 	function _checkParametres(parametres) {
 
 		var msg = plc.st.set_savings;
@@ -381,6 +463,7 @@ var mapperIni = (function(){
 
 	}
 
+	// обертка функции ajax, содержащая основные обработчики success, error, complete
 	function _ajaxWrap(obj){
 
 		if(!_isObject(obj)){

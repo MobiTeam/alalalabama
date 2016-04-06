@@ -41,7 +41,7 @@ function lib_addImageOnCanvas(canvas, imgSrc){
 }
 
 /////////////////////////////////////////////////////////////////////////////////
-////  Функция удаления выбранного элемента или группы элементов [21.03.2016]   //
+////  Функция удаления выбранного элемента или группы элементов [05.04.2016]   //
 /////////////////////////////////////////////////////////////////////////////////
 
 
@@ -49,8 +49,7 @@ function lib_removeElement(canvas) {
 	
 	var currEl = canvas.getActiveObject(),
 		currGr = canvas.getActiveGroup(),
-		msg = plc.st.not_el,
-		current = currEl || currGr._objects;
+		msg = plc.st.not_el;
 
 	if(canvas.getActiveGroup()){
 		canvas.getActiveGroup().forEachObject(function(o){ canvas.remove(o) });
@@ -60,7 +59,6 @@ function lib_removeElement(canvas) {
     	canvas.remove(canvas.getActiveObject());
     	return true;
     }	
-	
 
     s_alert(msg, {theme: 'redTheme', life: 2000});
     return false;
