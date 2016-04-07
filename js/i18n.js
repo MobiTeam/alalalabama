@@ -39,7 +39,10 @@ var i18n = (function(){
 			form_send: 'Форма отправлена',
 			sc_dt: 'Данные успешно отправлены',
 			btn_sc: 'Интерфейс успешно загружен',
-			not_el: 'Необходимо выбрать какой-нибудь объект'
+			not_el: 'Необходимо выбрать какой-нибудь объект',
+			not_del: 'Элемент не был удален',
+			suc_del: 'Элемент успешно удален',
+			suc_object_draw: 'Объект успешно построен'
 		}
 			
 	}                                            
@@ -76,8 +79,10 @@ var i18n = (function(){
 			form_send: 'Form sending',
 			sc_dt: 'Successfully sent',
 			btn_sc: 'Interface successfully loaded',
-			not_el: 'You need to select any object'
-					
+			not_el: 'You need to select any object',
+			not_del: 'The element has not been deleted',
+			suc_del: 'Element successfully removed',
+			suc_object_draw: 'Object successfully built'					
 		}
 			
 	}
@@ -97,7 +102,7 @@ var i18n = (function(){
 		} else {
 			var msg = l[defLocale].err.loc || "Ошибка настройки локализации";
 			s_alert(msg, {theme: 'redTheme', life: 3000})
-			_log(msg);
+			logger(msg);
 		}
 	}
 

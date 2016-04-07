@@ -4,7 +4,9 @@
 
 var mapperIni = (function(){
 
-	var plc = i18n.getLocale(), // загрузка локали
+	// переменные модуля
+	{ 
+		var plc = i18n.getLocale(), // загрузка локали
 		
 		canvas, // холст canvas fabric.js
 			
@@ -25,8 +27,9 @@ var mapperIni = (function(){
 
 		// параметры рисования
 		scale = scaleX = scaleY = 1,
-		markerColor = '#2567d5';
+		markerColor = '#2567d5'; 
 
+	}
 
 	// блок инициализации
 	function init() {
@@ -49,7 +52,7 @@ var mapperIni = (function(){
 
 			$("#" + uSettings.id).append(canvasBlock);
 
-			canvas = new fabric.Canvas('canvas-block', {
+			canvas = new fabric.CanvasEx('canvas-block', {
 				scale: 1
 			});
 
@@ -59,7 +62,7 @@ var mapperIni = (function(){
 		} else {
 
 			msg = plc.err.bad_sel;
-			_log(msg); 
+			logger(msg); 
 			if(uSettings.showMessage) s_alert(msg, {theme: 'redTheme', life: 3000})
 			return false;
 		
@@ -70,7 +73,7 @@ var mapperIni = (function(){
 		
 		msg = plc.st.in_finish;		
 
-		_log(msg); 
+		logger(msg); 
 		if(uSettings.showMessage) s_alert(msg, {theme: 'greenTheme', life: 2500})
 		return true;
 
@@ -97,7 +100,6 @@ var mapperIni = (function(){
 		set : set
 	}
 
-
 	function _getCurrentTool() {
 		return $('.tool-palette .active').attr('data-tool');
 	}
@@ -105,6 +107,8 @@ var mapperIni = (function(){
 	function _setUpListeners() {
 		
 		canvas.on('mouse:down', function (event) {
+
+			if(event.target) return;
 
 			switch(_getCurrentTool()){
 
@@ -115,7 +119,6 @@ var mapperIni = (function(){
 				default:
 				break;
 			}
-
 			
 		}).on('mouse:move', function (event) {
 
@@ -130,86 +133,373 @@ var mapperIni = (function(){
 
 			}
 		
+		}).on('mouse:dblclick', function (event) {
+
+			switch(_getCurrentTool()){
+
+				case 'lasso':
+					_finishDrawShape();
+				break;
+
+				default:
+				break;
+
+			}
+
 		});
 
-		//$(document).on('dblclick', _finishZone).on('keydown', _undoZonePoint);
+		$(document).on('keydown', function(event) {
 
-	}
+			if(state.currentAction === "edit") {
 
-	// добавление новой области выделения
-	function _addExtendZone(mouseEvent) {
+				_finishDrawShape(event);
 
-		var pos = canvas.getPointer(mouseEvent.e);
+			} else {
 
-		if(state.currentAction === "add") {
-			
-			var polygon = new fabric.Polygon([
-					{
-						x: pos.x,
-						y: pos.y
-					},
-					{
-						x: pos.x + 0.5,
-						y: pos.y + 0.5
+				if(event.keyCode == 46) lib_removeElement(canvas);
+
+			}
+
+
+		});
+		
+		// добавление новой области выделения
+		function _addExtendZone(mouseEvent) {
+
+			var pos = canvas.getPointer(mouseEvent.e);
+
+			if(state.currentAction === "add") {
+				
+				var polygon = new fabric.Polygon([
+						{
+							x: pos.x,
+							y: pos.y
+						},
+						{
+							x: pos.x + 0.5,
+							y: pos.y + 0.5
+						}
+					], {
+						fill: 'blue',
+						opacity: 0.25,
+						selectable: false,
+						stroke: '#2e69b6'
 					}
-				], {
-					fill: 'blue',
-					opacity: 0.25,
-					selectable: false,
-					stroke: '#2e69b6'
+				);
+
+				state.currentObject = polygon;
+				canvas.add(polygon);
+				state.currentAction = "edit";
+
+			} else if(state.currentAction === "edit" && state.currentObject && state.currentObject.type === "polygon") {
+
+				var points = state.currentObject.get('points'),
+					RelativeCords = _convertPointToRelative(pos, state.currentObject);
+
+				points.push({
+					x: RelativeCords.x,
+					y: RelativeCords.y
+				});
+
+				state.currentObject.set({
+					points: points
+				});
+
+				canvas.renderAll();
+
+			}		
+
+		}
+
+		// перерисовка области выделения
+		function _drawZone(mouseEvent) {
+
+			if(state.currentAction === "edit" && state.currentObject) {
+
+				var pos = canvas.getPointer(mouseEvent.e),
+					points = state.currentObject.get("points"),
+					RelativeCords = _convertPointToRelative(pos, state.currentObject);
+				
+				points[points.length - 1].x = RelativeCords.x;
+				points[points.length - 1].y = RelativeCords.y;
+
+				state.currentObject.set({
+					points: points
+				});	
+
+				canvas.renderAll();
+			}
+
+		}
+
+		// завершение области выделения
+		function _finishDrawShape(keyboardEvent) {
+
+			var allowedKeyCodes = [13, 27];
+
+			if(!keyboardEvent || (keyboardEvent && allowedKeyCodes.indexOf(keyboardEvent.keyCode) != -1)) {
+
+				switch(keyboardEvent.keyCode) {
+
+					case 13:
+
+						// switch shape type 
+						var currentShape = state.currentObject,
+						    points = state.currentObject.get('points');
+						
+						points.pop();
+
+						currentShape.set({
+							points: points
+						})
+
+						var oldC = currentShape.getCenterPoint();
+          				currentShape._calcDimensions();
+
+				        var xx = currentShape.get("minX");
+				        var yy = currentShape.get("minY");
+			         	
+			         	currentShape.set({
+			            	left: currentShape.get('left') + xx,
+			            	top: currentShape.get('top') + yy
+			          	});
+
+	          			var pCenter = currentShape.getCenterPoint();
+	          			var adjPoints = currentShape.get("points").map(function(p) {
+			            
+				            return {
+				              x: p.x - pCenter.x + oldC.x,
+				              y: p.y - pCenter.y + oldC.y
+				            };
+
+	        		  	});
+				        
+				        currentShape.set({
+				            points: adjPoints,
+				            selectable: true
+				        });
+
+			            canvas.setActiveObject(currentShape);
+			            currentShape.setCoords();
+			            canvas.renderAll();
+			            _resetAction();
+						logger(plc.st.suc_object_draw);
+
+					break;
+
+					case 27:
+
+						state.currentObject.remove();
+						canvas.renderAll();
+						_resetAction();
+						logger(plc.st.suc_del);
+
+					break;
+
 				}
-			);
+					
+			} 
 
-			state.currentObject = polygon;
-			canvas.add(polygon);
-			state.currentAction = "edit";
-
-		} else if(state.currentAction === "edit" && state.currentObject && state.currentObject.type === "polygon") {
-
-			var points = state.currentObject.get('points');
-
-			points.push({
-				x: pos.x - state.currentObject.get("left"),
-				y: pos.y - state.currentObject.get("top")
-			});
-
-			state.currentObject.set({
-				points: points
-			});
-
-			canvas.renderAll();
-
-		}		
-
-	}
-
-	// перерисовка области выделения
-	function _drawZone(mouseEvent) {
-
-		if(state.currentAction === "edit" && state.currentObject) {
-
-			var pos = canvas.getPointer(mouseEvent.e),
-				points = state.currentObject.get("points");
-
-			points[points.length - 1].x = pos.x - state.currentObject.get("left");
-			points[points.length - 1].y = pos.y - state.currentObject.get("top");
-
-			state.currentObject.set({
-				points: points
-			});	
-
-			canvas.renderAll();
 		}
 
 	}
 
-	// // Вспомогательная функция для получения координат, учитывающих текущий масштаб
-	// function _convertPointToRelative(point, object) {
+	// Вспомогательная функция для получения координат, учитывающих текущий масштаб
+	function _convertPointToRelative(point, object) {
 
-	// 	return { x: (point.x - object.left) / scale, y: (point.y - object.top) / scale };
+		return { x: (point.x - object.left) / scale, y: (point.y - object.top) / scale };
 
-	// };
+	};
 
+	// динамическое создание
+	function _createButtonPanel() {
+
+		var button_block = $('<div/>', {
+				class: 'btn-group-vertical tool-palette',
+				click: function(e){
+					_changeTool(e);	
+				}
+			}).appendTo($("#" + uSettings.id)),
+
+			btn_cursor = $('<button/>', {
+				class: 'btn btn-default',
+				title: plc.btn.cursor,
+				'data-tool': 'pointer',
+				html: '<i class="glyphicon glyphicon-hand-up"></i>'
+			}).appendTo(button_block),
+
+			btn_point = $('<button/>', {
+				class: 'btn btn-default',
+				title: plc.btn.btn_point,
+				'data-tool': 'pencil',
+				click: function(e) {
+					canvas.isDrawingMode = !canvas.isDrawingMode;
+				},
+				html: '<i class="glyphicon glyphicon-pencil"></i>'
+			}).appendTo(button_block),
+
+			btn_remove_el = $('<button/>', {
+				class: 'btn btn-default',
+				title: plc.btn.btn_rem,
+				'data-no-focus': true,
+				click: function(e) {
+					if(lib_removeElement(canvas)) logger(plc.st.suc_del);
+				},
+				html: '<i class="glyphicon glyphicon-remove"></i>'
+			}).appendTo(button_block),
+
+			load_form = $('<form/>', {
+				method: 'post',
+				enctype: 'multipart/form-data',
+				submit: function(e){
+
+					var $that = load_form;
+
+					e.preventDefault();
+					logger(plc.st.form_send);
+
+					ajaxWrap({
+						url: '/php/handler.php',
+						data: new FormData($that.get(0)),
+						type: 'post',
+						contentType: false, // важно - убираем форматирование данных по умолчанию
+      					processData: false, // важно - убираем преобразование строк по умолчанию
+      					dataType: 'json',
+      					success: function(json) {
+      						if(json && !json.error_flag){
+      							lib_addImageOnCanvas(canvas, json.img_src);
+					        }
+						}
+					})
+				}
+			}).appendTo(button_block),  
+
+			btn_load_file = $('<input/>', {
+				type: 'file',
+				name: 'images',
+				id: 'you-image',
+				change: function(){
+					load_form.submit();
+				},
+			}).appendTo(load_form),
+			
+			btn_draw_zone = $('<button/>', {
+				class: 'btn btn-default',
+				title: plc.btn.drarea,
+				"data-tool": "lasso",
+				html: '<i class="glyphicon glyphicon-unchecked"></i>'
+			}).appendTo(button_block),
+
+			btn_load = $('<button/>', {
+				class: 'btn btn-success',
+				title: plc.btn.load_img,
+				click: function(e){
+					btn_load_file.click();
+				},
+				html: '<i class="glyphicon glyphicon-floppy-open"></i>'
+			}).appendTo(button_block);
+	
+
+		msg = plc.st.btn_sc;
+		logger(msg); 
+		if(uSettings.showMessage) s_alert(msg, {theme: 'greenTheme', life: 2500})
+		
+		return true;
+	
+	}
+
+	// смена активного инструмента
+	function _changeTool(e) {
+
+		var eventEl;
+		
+		switch(e.target.tagName) {
+			
+			case 'BUTTON':
+				eventEl = $(e.target); 
+			break;
+
+			case 'I':
+				eventEl = $(e.target.parentNode);
+			break;
+
+			default:
+				eventEl = null;
+			break;
+
+		}
+
+		if(!!eventEl) {
+
+			if(!eventEl.hasClass('active')) {
+			
+				$('.tool-palette .active').removeClass('active');
+				if(!eventEl.attr('data-no-focus')) eventEl.addClass('active');
+			
+			} else {
+
+				$('.tool-palette .active').removeClass('active');
+			
+			}
+
+			if(eventEl.attr('data-tool') != "pencil") {
+				canvas.isDrawingMode = false;
+			} 
+
+			if(eventEl.attr('data-tool') == "lasso") {
+				canvas.selection = false;
+			} else {
+				canvas.selection = true;
+			}
+			
+		} 
+
+		_resetAction();
+
+	}
+
+	// сброс текущего действия и активного элемента
+	function _resetAction() {
+		state.currentAction = "add";
+		state.currentObject = null;
+	}
+
+	// проверка и установка параметров инициализации
+	function _checkParametres(parametres) {
+
+		var msg = plc.st.set_savings;
+		
+		if(isObject(parametres)) {
+			
+			uSettings = parametres;
+			logger(msg); 
+			if(uSettings.showMessage) s_alert(msg, {theme: 'greenTheme', life: 2500})
+			return true;
+		
+		} else if(isEmpty(parametres)) {
+
+			msg = plc.st.set_def;
+			uSettings = dSettigns;
+			logger(msg); 
+			if(uSettings.showMessage) s_alert(msg, {theme: 'greenTheme', life: 2500})
+			return true;
+
+		} else {
+			
+			msg = plc.err.set;
+			logger(msg); 
+			if(uSettings.showMessage) s_alert(msg, {theme: 'redTheme', life: 3000})
+			return false;
+		
+		}		
+		
+	}
+
+}())
+
+
+
+	
 	// // добавлние новой области выделения
 	// function _addExtendZone(mouseEvent) {
 		
@@ -246,7 +536,7 @@ var mapperIni = (function(){
 	// 	}
 	// };
 
-	// function _finishZone() {
+	// function _finishDrawShape() {
 
 	// 	if (!currentEditingZone) {
 	// 		return;
@@ -275,224 +565,6 @@ var mapperIni = (function(){
 	// };
 
 
-	// динамическое создание
-	function _createButtonPanel() {
-
-		var button_block = $('<div/>', {
-				class: 'btn-group-vertical tool-palette',
-				click: function(e){
-					_changeTool(e);	
-				}
-			}).appendTo($("#" + uSettings.id)),
-
-			btn_cursor = $('<button/>', {
-				class: 'btn btn-default',
-				title: plc.btn.cursor,
-				click: function(){
-					canvas.isDrawingMode = false;
-				},
-				html: '<i class="glyphicon glyphicon-hand-up"></i>'
-			}).appendTo(button_block),
-
-			btn_point = $('<button/>', {
-				class: 'btn btn-default',
-				title: plc.btn.btn_point,
-				click: function(e) {
-					canvas.isDrawingMode = !canvas.isDrawingMode;
-				},
-				html: '<i class="glyphicon glyphicon-pencil"></i>'
-			}).appendTo(button_block),
-
-			btn_remove_el = $('<button/>', {
-				class: 'btn btn-default',
-				title: plc.btn.btn_rem,
-				click: function(e) {
-
-					canvas.isDrawingMode = false;
-					lib_removeElement(canvas);					
-					
-				},
-				html: '<i class="glyphicon glyphicon-remove"></i>'
-			}).appendTo(button_block),
-
-			load_form = $('<form/>', {
-				method: 'post',
-				enctype: 'multipart/form-data',
-				submit: function(e){
-
-					var $that = load_form;
-
-					e.preventDefault();
-					_log(plc.st.form_send);
-
-					_ajaxWrap({
-						url: '/php/handler.php',
-						data: new FormData($that.get(0)),
-						type: 'post',
-						contentType: false, // важно - убираем форматирование данных по умолчанию
-      					processData: false, // важно - убираем преобразование строк по умолчанию
-      					dataType: 'json',
-      					success: function(json) {
-      						if(json && !json.error_flag){
-
-      							//_loadMap(json.img_src);
-
-      							lib_addImageOnCanvas(canvas, json.img_src);
-					        }
-						}
-					})
-				}
-			}).appendTo(button_block),  
-
-			btn_load_file = $('<input/>', {
-				type: 'file',
-				name: 'images',
-				id: 'you-image',
-				change: function(){
-					load_form.submit();
-				},
-			}).appendTo(load_form),
-			
-			btn_draw_zone = $('<button/>', {
-				class: 'btn btn-default',
-				title: plc.btn.drarea,
-				"data-tool": "lasso",
-				html: '<i class="glyphicon glyphicon-unchecked"></i>'
-			}).appendTo(button_block),
-
-			btn_load = $('<button/>', {
-				class: 'btn btn-success',
-				title: plc.btn.load_img,
-				click: function(e){
-					btn_load_file.click();
-				},
-				html: '<i class="glyphicon glyphicon-floppy-open"></i>'
-			}).appendTo(button_block);
-
-			
-
-		msg = plc.st.btn_sc;
-		_log(msg); 
-		if(uSettings.showMessage) s_alert(msg, {theme: 'greenTheme', life: 2500})
-		
-		return true;
-	
-	}
-
-	// смена активного инструмента
-	function _changeTool(e) {
-
-		var eventEl;
-		
-		switch(e.target.tagName) {
-			
-			case 'BUTTON':
-				eventEl = $(e.target); 
-			break;
-
-			case 'I':
-				eventEl = $(e.target.parentNode);
-			break;
-
-			default:
-				eventEl = null;
-			break;
-
-		}
-
-		if(!!eventEl && !eventEl.hasClass('active')) {
-			$('.tool-palette .active').removeClass('active');
-			eventEl.addClass('active');
-		} else if(!!eventEl && eventEl.hasClass('active')){
-			$('.tool-palette .active').removeClass('active');
-		}
-
-		_resetAction();
-
-	}
-
-	// сброс текущего действия и активного элемента
-	function _resetAction() {
-		state.currentAction = "add";
-		state.currentObject = null;
-	}
-
-	// проверка и установка параметров инициализации
-	function _checkParametres(parametres) {
-
-		var msg = plc.st.set_savings;
-		
-		if(_isObject(parametres)) {
-			
-			uSettings = parametres;
-			_log(msg); 
-			if(uSettings.showMessage) s_alert(msg, {theme: 'greenTheme', life: 2500})
-			return true;
-		
-		} else if(_isEmpty(parametres)) {
-
-			msg = plc.st.set_def;
-			uSettings = dSettigns;
-			_log(msg); 
-			if(uSettings.showMessage) s_alert(msg, {theme: 'greenTheme', life: 2500})
-			return true;
-
-		} else {
-			
-			msg = plc.err.set;
-			_log(msg); 
-			if(uSettings.showMessage) s_alert(msg, {theme: 'redTheme', life: 3000})
-			return false;
-		
-		}		
-		
-	}
-
-	function _isObject(obj){
-
-		var strPres = Object.prototype.toString.call(obj);
-
-		return (strPres === "[object Object]");
-	}
-
-	function _isEmpty(obj){
-
-		var strPres = Object.prototype.toString.call(obj);
-
-		return (strPres === "[object Null]" || strPres === "[object Undefined]");
-
-	}
-
-	// обертка функции ajax, содержащая основные обработчики success, error, complete
-	function _ajaxWrap(obj){
-
-		if(!_isObject(obj)){
-			_log(plc.err.set);
-			return false;
-		}
-
-		if(!obj.success){
-			obj.success = function(response){
-				_log(plc.st.sc_dt);
-			}
-		}
-
-		if(!obj.error){
-			obj.error = function(response){
-				_log(plc.err.er_dt);
-			}
-		}
-
-		$.ajax(obj)
-
-	}
-
-}())
-
-
-
-
-
 
 
 
@@ -508,7 +580,7 @@ var mapperIni = (function(){
 
 	// function _mouseup(e) {
 		
-	// 	// _log('up');
+	// 	// logger('up');
 
 	// 	mousedown = false;
 
@@ -516,7 +588,7 @@ var mapperIni = (function(){
 
 	// function _mousedown(e) {
 		
-	// 	// _log('down');
+	// 	// logger('down');
 
 	// 	mousedown = true;
 
@@ -529,7 +601,7 @@ var mapperIni = (function(){
 
 	// function _startTracking(e) {
 		
-	// 	// _log('start');
+	// 	// logger('start');
 
 	// 	mouse.x = _getCursorCoordinate(e).x;
 	// 	mouse.y = _getCursorCoordinate(e).y;
@@ -548,7 +620,7 @@ var mapperIni = (function(){
 	// }
 
 	// function _stopTracking() {
-	// 	_log('stop');
+	// 	logger('stop');
 	// }
 
 	// function _getCursorCoordinate(e) {

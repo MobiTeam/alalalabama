@@ -57,6 +57,10 @@ body, html {
     border-radius: 0px 5px 5px 0px;
 }
 
+.tool-palette button:focus {
+	outline: none!important;
+}
+
 #you-image {
 	display: none;
 }
