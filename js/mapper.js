@@ -56,9 +56,8 @@ var mapperIni = (function(){
 				scale: 1
 			});
 
-			canvas.setHeight(uSettings.height);
-			canvas.setWidth(uSettings.width);
-
+			_updateCanvasSize(uSettings.height, uSettings.width);
+		
 		} else {
 
 			msg = plc.err.bad_sel;
@@ -108,7 +107,7 @@ var mapperIni = (function(){
 		
 		canvas.on('mouse:down', function (event) {
 
-			if(event.target) return;
+			//if(event.target) return;
 
 			switch(_getCurrentTool()){
 
@@ -162,6 +161,12 @@ var mapperIni = (function(){
 
 
 		});
+
+		$(window).on('resize', function(event) {
+
+			_updateCanvasSize();
+
+		})
 		
 		// добавление новой области выделения
 		function _addExtendZone(mouseEvent) {
@@ -493,6 +498,16 @@ var mapperIni = (function(){
 		
 		}		
 		
+	}
+
+	// обновить размеры canvas
+	function _updateCanvasSize(height, width) {
+
+		canvas.setHeight(height || $('#canvas-ini').height());
+		canvas.setWidth(width || $('#canvas-ini').width());
+		canvas.calcOffset();
+		canvas.renderAll();
+
 	}
 
 }())
