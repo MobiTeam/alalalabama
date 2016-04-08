@@ -375,7 +375,7 @@ var mapperIni = (function(){
 				class: 'btn btn-default',
 				title: plc.btn.cursor,
 				'data-tool': 'pointer',
-				html: '<i class="glyphicon glyphicon-hand-up"></i>'
+				html: '<i class="fa fa-arrows"></i>'
 			}).appendTo(button_block),
 
 			btn_point = $('<button/>', {
@@ -385,7 +385,7 @@ var mapperIni = (function(){
 				click: function(e) {
 					canvas.isDrawingMode = !canvas.isDrawingMode;
 				},
-				html: '<i class="glyphicon glyphicon-pencil"></i>'
+				html: '<i class="fa fa-pencil"></i>'
 			}).appendTo(button_block),
 
 			btn_remove_el = $('<button/>', {
@@ -437,7 +437,8 @@ var mapperIni = (function(){
 				class: 'btn btn-default',
 				title: plc.btn.drarea,
 				"data-tool": "lasso",
-				html: '<i class="glyphicon glyphicon-unchecked"></i>'
+				// html: '<i class="glyphicon glyphicon-unchecked"></i>'
+				html: '<i class="fa fa-map-o"></i>'
 			}).appendTo(button_block),
 
 			btn_load = $('<button/>', {
