@@ -7,6 +7,7 @@ var i18n = (function(){
 	var l = [],
 		defLocale = 'ru-RU';
 
+
 	l['ru-RU'] = {
 		mn: {
 			title: 'MapperJS',
@@ -88,7 +89,6 @@ var i18n = (function(){
 	}
 
 	function getLocale(locale) {
-
 		locale = locale || defLocale;
 
 		if(l[locale]){

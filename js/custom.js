@@ -11,7 +11,8 @@ $(document).ready(function(){
 		showMessage: true
  	}
 		
- 	i18n.setLocale('ru-RU');
+ 	// // i18n.setLocale('ru-RU');
+ 	// i18n.setLocale('en-EN');
 
 	if(mapperIni.set())
 		if(mapperIni.init()) {

@@ -22,7 +22,8 @@ var mapperIni = (function(){
 		// текущее состояние
 		state = {
 			currentObject : null,
-			currentAction : null
+			currentAction : null,
+			keyPressed: []
 		},
 
 		// параметры рисования
@@ -107,8 +108,8 @@ var mapperIni = (function(){
 		
 		canvas.on('mouse:down', function (event) {
 
-			//if(event.target) return;
-
+			if(event.target && event.target.get('type') !== 'image') return;
+			
 			switch(_getCurrentTool()){
 
 				case 'lasso':
@@ -131,7 +132,7 @@ var mapperIni = (function(){
 				break;
 
 			}
-		
+			
 		}).on('mouse:dblclick', function (event) {
 
 			switch(_getCurrentTool()){
@@ -149,6 +150,11 @@ var mapperIni = (function(){
 
 		$(document).on('keydown', function(event) {
 
+			if (state.keyPressed.indexOf(event.keyCode) == -1) {
+				state.keyPressed.push(event.keyCode);
+			}
+			
+
 			if(state.currentAction === "edit") {
 
 				_finishDrawShape(event);
@@ -160,7 +166,15 @@ var mapperIni = (function(){
 			}
 
 
-		});
+		}).on('keyup', function(event) {
+
+			var pos = state.keyPressed.indexOf(event.keyCode);
+
+			if (pos != -1) {
+				state.keyPressed.splice(pos, 1);
+			}
+
+		})
 
 		$(window).on('resize', function(event) {
 
@@ -224,9 +238,40 @@ var mapperIni = (function(){
 				var pos = canvas.getPointer(mouseEvent.e),
 					points = state.currentObject.get("points"),
 					RelativeCords = _convertPointToRelative(pos, state.currentObject);
+
+				if (state.keyPressed.indexOf(16) != -1) {
+
+					var FixedbyX = {
+							x: points[points.length - 2].x,
+							y: RelativeCords.y	
+						},
+						FixedbyY = {
+							x: RelativeCords.x,
+							y: points[points.length - 2].y
+						},
+						lx = calcDecart(points[points.length - 2], FixedbyX),
+						ly = calcDecart(points[points.length - 2], FixedbyY);
+
+					
+					if(lx > ly) {
+
+						points[points.length - 1] = FixedbyX;
+
+					} else if(lx < ly) {
+
+						points[points.length - 1] = FixedbyY;
+
+					} else {
+
+						points[points.length - 1].x = RelativeCords.x;
+						points[points.length - 1].y = RelativeCords.y;
+
+					}
 				
-				points[points.length - 1].x = RelativeCords.x;
-				points[points.length - 1].y = RelativeCords.y;
+				} else {
+					points[points.length - 1].x = RelativeCords.x;
+					points[points.length - 1].y = RelativeCords.y;
+				}	 
 
 				state.currentObject.set({
 					points: points
@@ -316,7 +361,7 @@ var mapperIni = (function(){
 
 	};
 
-	// динамическое создание
+	// динамическое создание панели кнопок
 	function _createButtonPanel() {
 
 		var button_block = $('<div/>', {
