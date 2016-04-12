@@ -23,6 +23,7 @@ function lib_addImageOnCanvas(canvas, imgSrc){
     		fabric.Image.fromURL(imgSrc, function(oImg) {
     		  oImg.set('scaleY', (canvas.height - 100) / oImg.height);	
     		  oImg.set('scaleX', (canvas.height - 100) / oImg.height);
+              oImg.set({selectable:false});
     		  canvas.add(oImg);
     		  canvas.sendBackwards(oImg);
     		});

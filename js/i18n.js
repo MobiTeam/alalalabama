@@ -23,7 +23,8 @@ var i18n = (function(){
 			btn_rem: 'Удалить фигуру',
 			cursor: 'Курсор',
 			drarea: 'Лассо',
-			drrect: 'Прямоугольник'
+			drrect: 'Прямоугольник',
+			transfer: 'Перенос'
 		},
 		err: {
 			ftl: 'Критическая ошибка',
@@ -65,7 +66,8 @@ var i18n = (function(){
 			btn_rem: 'Remove object',
 			cursor: 'Cursor',
 			drarea: 'Lasso',
-			drrect: 'Rectangle'
+			drrect: 'Rectangle',
+			transfer: 'Transfer'
 		},
 		err: {
 			ftl: 'Critical error',

@@ -24,7 +24,8 @@ var mapperIni = (function(){
 			currentObject : null,
 			currentAction : null,
 			keyPressed: [],
-			isAnimating: false
+			isAnimating: false,
+			gripPoint: null
 		},
 
 		// параметры масштабирования
@@ -125,6 +126,10 @@ var mapperIni = (function(){
 					_addNewRectangle(event);
 				break;
 
+				case 'transfer':
+					_gripCanvas(event);
+				break;
+
 				default:
 				break;
 			}
@@ -139,6 +144,10 @@ var mapperIni = (function(){
 
 				case 'rectangle':
 					_reDrawRectangle(event);
+				break;
+
+				case 'transfer':
+					_transferCanvas(event)
 				break;
 
 				default:
@@ -165,6 +174,10 @@ var mapperIni = (function(){
 
 				case 'rectangle':
 					_finishDrawRect();
+				break;
+
+				case 'transfer':
+					_unGripCanvas();
 				break;
 
 				default: 
@@ -226,7 +239,36 @@ var mapperIni = (function(){
 
 		})
 
+		// взять холст за точку
+		function _gripCanvas(mouseEvent) {
 
+			state.gripPoint = canvas.getPointer(mouseEvent.e);
+
+		}
+
+		// перенос холста
+		function _transferCanvas(mouseEvent) {
+
+			if(state.gripPoint) {
+
+				var currPoint = canvas.getPointer(mouseEvent.e);
+
+
+				trsY = (state.gripPoint.y - currPoint.y) / scale;
+				trsX = (state.gripPoint.x - currPoint.x) / scale;
+
+				_ScaleTransform();
+
+				state.gripPoint = currPoint;
+
+			}
+
+		}
+
+		// отпустить холст
+		function _unGripCanvas() {
+			state.gripPoint = null;
+		}
 
 		// перерисовать прямоугольник
 		function _reDrawRectangle(mouseEvent) {
@@ -461,6 +503,9 @@ var mapperIni = (function(){
 			allObjectsOnCanvas = new fabric.Group(canvas.getObjects());
 
 		allObjectsOnCanvas.scaleY = allObjectsOnCanvas.scaleX = scale / canvas.scale;
+		allObjectsOnCanvas.left -= trsX;
+		allObjectsOnCanvas.top -= trsY;
+
 		allObjectsOnCanvas.destroy();
 		canvas.scale = scale;
 		canvas.renderAll();
@@ -484,11 +529,18 @@ var mapperIni = (function(){
 				}
 			}).appendTo($("#" + uSettings.id)),
 
+			btn_transfer = $('<button/>', {
+				class: 'btn btn-default',
+				title: plc.btn.transfer,
+				'data-tool': 'transfer',
+				html: '<i class="fa fa-arrows"></i>'
+			}).appendTo(button_block),
+
 			btn_cursor = $('<button/>', {
 				class: 'btn btn-default',
 				title: plc.btn.cursor,
 				'data-tool': 'pointer',
-				html: '<i class="fa fa-arrows"></i>'
+				html: '<i class="glyphicon glyphicon-hand-up"></i>'
 			}).appendTo(button_block),
 
 			btn_point = $('<button/>', {
@@ -616,7 +668,7 @@ var mapperIni = (function(){
 				canvas.isDrawingMode = false;
 			} 
 
-			if(eventEl.attr('data-tool') == "lasso" || eventEl.attr('data-tool') == "rectangle") {
+			if(eventEl.attr('data-tool') == "lasso" || eventEl.attr('data-tool') == "rectangle" || eventEl.attr('data-tool') == "transfer") {
 				canvas.selection = false;
 			} else {
 				canvas.selection = true;
