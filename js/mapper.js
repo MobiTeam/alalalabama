@@ -116,6 +116,10 @@ var mapperIni = (function(){
 					_addExtendZone(event);
 				break;
 
+				case 'rectangle':
+					_addNewRectangle(event);
+				break;
+
 				default:
 				break;
 			}
@@ -126,6 +130,10 @@ var mapperIni = (function(){
 
 				case 'lasso':
 					_drawZone(event);
+				break;
+
+				case 'rectangle':
+					_reDrawRectangle(event);
 				break;
 
 				default:
@@ -145,6 +153,20 @@ var mapperIni = (function(){
 				break;
 
 			}
+
+		}).on('mouse:up', function (event) {
+
+			switch(_getCurrentTool()){ 
+
+				case 'rectangle':
+					_finishDrawRect();
+				break;
+
+				default: 
+				break;
+
+			}
+
 
 		});
 
@@ -181,6 +203,57 @@ var mapperIni = (function(){
 			_updateCanvasSize();
 
 		})
+
+		// перерисовать прямоугольник
+		function _reDrawRectangle(mouseEvent) {
+
+			if(state.currentAction === "edit" && state.currentObject && state.currentObject.type === "rect") {
+				
+				var rect = state.currentObject,
+				    e = mouseEvent.e;
+
+				rect.set('width', e.offsetX - rect.left);
+                rect.set('height', e.offsetY - rect.top);
+                rect.setCoords();
+                canvas.renderAll();	
+                
+			}
+
+		}
+
+		// завершение прямоугольника
+		function _finishDrawRect() {
+
+			canvas.renderAll();
+			_resetAction();
+			logger(plc.st.suc_object_draw);
+
+		}
+
+		// добавление нового прямоугольника
+		function _addNewRectangle(mouseEvent) {
+
+			if(state.currentAction === "add") {
+
+				var pos = canvas.getPointer(mouseEvent.e),
+				    rectangle = new fabric.Rect({
+					 					top : pos.y,
+					                    left : pos.x,
+					                    width : 0,
+					                    height : 0,
+					                    fill: 'blue',
+										opacity: 0.25,
+										stroke: '#2e69b6'
+					                });
+
+				state.currentObject = rectangle;
+				canvas.add(rectangle);
+				state.currentAction = "edit";
+
+			} 
+
+		}
+
 		
 		// добавление новой области выделения
 		function _addExtendZone(mouseEvent) {
@@ -436,9 +509,15 @@ var mapperIni = (function(){
 			btn_draw_zone = $('<button/>', {
 				class: 'btn btn-default',
 				title: plc.btn.drarea,
-				"data-tool": "lasso",
-				// html: '<i class="glyphicon glyphicon-unchecked"></i>'
+				"data-tool": "lasso",				
 				html: '<i class="fa fa-map-o"></i>'
+			}).appendTo(button_block),
+
+			btn_draw_rect = $('<button/>', {
+				class: 'btn btn-default',
+				title: plc.btn.drrect,
+				"data-tool": "rectangle",
+				html: '<i class="glyphicon glyphicon-unchecked"></i>'
 			}).appendTo(button_block),
 
 			btn_load = $('<button/>', {
@@ -497,7 +576,7 @@ var mapperIni = (function(){
 				canvas.isDrawingMode = false;
 			} 
 
-			if(eventEl.attr('data-tool') == "lasso") {
+			if(eventEl.attr('data-tool') == "lasso" || eventEl.attr('data-tool') == "rectangle") {
 				canvas.selection = false;
 			} else {
 				canvas.selection = true;

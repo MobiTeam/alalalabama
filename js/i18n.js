@@ -22,7 +22,8 @@ var i18n = (function(){
 			btn_point: 'Нарисовать контур',
 			btn_rem: 'Удалить фигуру',
 			cursor: 'Курсор',
-			drarea: 'Лассо'
+			drarea: 'Лассо',
+			drrect: 'Прямоугольник'
 		},
 		err: {
 			ftl: 'Критическая ошибка',
@@ -63,7 +64,8 @@ var i18n = (function(){
 			btn_point: 'Draw path',
 			btn_rem: 'Remove object',
 			cursor: 'Cursor',
-			drarea: 'Lasso'
+			drarea: 'Lasso',
+			drrect: 'Rectangle'
 		},
 		err: {
 			ftl: 'Critical error',
