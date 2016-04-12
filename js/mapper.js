@@ -23,11 +23,15 @@ var mapperIni = (function(){
 		state = {
 			currentObject : null,
 			currentAction : null,
-			keyPressed: []
+			keyPressed: [],
+			isAnimating: false
 		},
 
-		// параметры рисования
+		// параметры масштабирования
 		scale = scaleX = scaleY = 1,
+		trsX = trsY = 0,
+
+		// параметры рисования
 		markerColor = '#2567d5'; 
 
 	}
@@ -75,6 +79,7 @@ var mapperIni = (function(){
 
 		logger(msg); 
 		if(uSettings.showMessage) s_alert(msg, {theme: 'greenTheme', life: 2500})
+
 		return true;
 
 	}
@@ -168,6 +173,23 @@ var mapperIni = (function(){
 			}
 
 
+		})
+
+		$(canvas.wrapperEl).mousewheel(function (event, delta, deltaX, deltaY) {
+
+			if(!state.isAnimating) {
+            	scale += 0.09 * delta;
+            	
+            	if(scale < 0){
+	            	scale = canvas.scale;
+	            }
+
+	            _ScaleTransform();
+            }
+
+            event.preventDefault();
+            event.stopPropagation();           
+		
 		});
 
 		$(document).on('keydown', function(event) {
@@ -203,6 +225,8 @@ var mapperIni = (function(){
 			_updateCanvasSize();
 
 		})
+
+
 
 		// перерисовать прямоугольник
 		function _reDrawRectangle(mouseEvent) {
@@ -243,7 +267,7 @@ var mapperIni = (function(){
 					                    height : 0,
 					                    fill: 'blue',
 										opacity: 0.25,
-										stroke: '#2e69b6'
+										stroke: markerColor
 					                });
 
 				state.currentObject = rectangle;
@@ -275,7 +299,7 @@ var mapperIni = (function(){
 						fill: 'blue',
 						opacity: 0.25,
 						selectable: false,
-						stroke: '#2e69b6'
+						stroke: markerColor
 					}
 				);
 
@@ -424,6 +448,22 @@ var mapperIni = (function(){
 			} 
 
 		}
+
+	}
+
+	// масштабирование canvas
+	function _ScaleTransform() {
+
+		var maxTransfY, 
+			maxTransfX,
+			minTransfX,
+			minTransfY,
+			allObjectsOnCanvas = new fabric.Group(canvas.getObjects());
+
+		allObjectsOnCanvas.scaleY = allObjectsOnCanvas.scaleX = scale / canvas.scale;
+		allObjectsOnCanvas.destroy();
+		canvas.scale = scale;
+		canvas.renderAll();
 
 	}
 
@@ -636,141 +676,3 @@ var mapperIni = (function(){
 	}
 
 }())
-
-
-
-	
-	// // добавлние новой области выделения
-	// function _addExtendZone(mouseEvent) {
-		
-	// 	var position = canvas.getPointer(mouseEvent);
-
-	// 	// Новая точка уже существующей зоны
-	// 	if (currentEditingZone) {
-	// 		currentEditingZone.points.push(_convertPointToRelative(position, currentEditingZone));
-	// 		return;
-	// 	}
-	// 	// Новая зона - сделаем сразу 3 точки, тогда визуально зона будет линией
-	// 	currentEditingZone = new fabric.Polygon(
-	// 		[{ x: 1, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 2 }], {
-	// 		scaleX: scale, 
-	// 		scaleY: scale, 
-	// 		left: position.x,
-	// 		top: position.y,
-	// 		fill: new fabric.Color(markerColor).setAlpha(0.3).toRgba(),
-	// 		stroke: '#2e69b6',
-	// 		selectable: true
-	// 	});
-
-	// 	canvas.add(currentEditingZone);
-	// 	canvas.renderAll();
-	// };
-
-	// function _drawZone(mouseEvent) {
-	// 	var points;
-	// 	if (currentEditingZone) {
-	// 		// При перемещении мыши меняем только последнюю точку, следуя за курсором
-	// 		points = currentEditingZone.points;
-	// 		points[points.length - 1] = _convertPointToRelative(canvas.getPointer(mouseEvent), currentEditingZone);
-	// 		canvas.renderAll();
-	// 	}
-	// };
-
-	// function _finishDrawShape() {
-
-	// 	if (!currentEditingZone) {
-	// 		return;
-	// 	}
-		
-	// 	// Уберём последнюю точку, так как клик двойной
-	// 	currentEditingZone.points.pop();
-	// 	currentEditingZone = null;
-	// };
-
-	// function _undoZonePoint(event) {
-	// 	// Только backspace и delete
-	// 	if (currentEditingZone && (event.which == 8 || event.which == 46)) {
-	// 		var points = currentEditingZone.points,
-	// 			isDeleted = points.length <= 3;
-	// 		points[points.length - 2] = points[points.length - 1];
-	// 		points.pop();
-	// 		// Отмена зоны вообще
-	// 		if (isDeleted) {
-	// 			canvas.remove(currentEditingZone);
-	// 			currentEditingZone = null;
-	// 		}
-	// 		canvas.renderAll();
-	// 		event.preventDefault();
-	// 	}
-	// };
-
-
-
-
-
-	// function _setUpListeners() {
-		
-		// canvListener.on('mouseup', _mouseup);
-		// canvListener.on('mousedown', _mousedown);
-		// canvListener.on('mousemove', _startTracking);
-		// canvListener.on('mouseleave', _stopTracking);
-	// 	return true;
-
-	// }
-
-	// function _mouseup(e) {
-		
-	// 	// logger('up');
-
-	// 	mousedown = false;
-
-	// }
-
-	// function _mousedown(e) {
-		
-	// 	// logger('down');
-
-	// 	mousedown = true;
-
-	// 	x0 = _getCursorCoordinate(e).x;
-	// 	y0 = _getCursorCoordinate(e).y;
-
-	// 	console.log(x0 + " " + y0);
-
-	// }
-
-	// function _startTracking(e) {
-		
-	// 	// logger('start');
-
-	// 	mouse.x = _getCursorCoordinate(e).x;
-	// 	mouse.y = _getCursorCoordinate(e).y;
-
-	// 	e.preventDefault();
-
-	// 	if(mousedown) {
-	// 		if(!started) {
-
-	// 		} else {
-
-	// 		}
-	// 	}
-		
-
-	// }
-
-	// function _stopTracking() {
-	// 	logger('stop');
-	// }
-
-	// function _getCursorCoordinate(e) {
-		
-	// 	var mouseX = e.pageX - canvListener.offset().left,
-	// 		mouseY = e.pageY - canvListener.offset().top;
-
-	// 	return {
-	// 		x: mouseX,
-	// 		y: mouseY
-	// 	}
-
-	// }
