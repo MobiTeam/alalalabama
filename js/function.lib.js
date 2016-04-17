@@ -25,6 +25,7 @@ function lib_addImageOnCanvas(canvas, imgSrc){
     		  oImg.set('scaleX', (canvas.height - 100) / oImg.height);
               oImg.set({selectable:false});
     		  canvas.add(oImg);
+              canvas.centerObject(oImg);
     		  canvas.sendBackwards(oImg);
     		});
     		

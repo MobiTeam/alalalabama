@@ -24,6 +24,7 @@ var mapperIni = (function(){
 			currentObject : null,
 			currentAction : null,
 			keyPressed: [],
+			currentTool: null,
 			isAnimating: false,
 			gripPoint: null
 		},
@@ -107,7 +108,7 @@ var mapperIni = (function(){
 	}
 
 	function _getCurrentTool() {
-		return $('.tool-palette .active').attr('data-tool');
+		return state.currentTool;
 	}
 
 	function _setUpListeners() {
@@ -191,12 +192,31 @@ var mapperIni = (function(){
 		$(canvas.wrapperEl).mousewheel(function (event, delta, deltaX, deltaY) {
 
 			if(!state.isAnimating) {
-            	scale += 0.09 * delta;
+
+				var prevScale = canvas.scale,
+					h,
+					w;
+					
+				scale += (0.09 * scale) * delta;
             	
             	if(scale < 0){
+	            
 	            	scale = canvas.scale;
+	            
+	            } else {
+
+	            	h = canvas.getHeight();
+					w = canvas.getWidth();
+
+					console.log(h + " " + w);
+
+					// trsX -= 0.09 * scale / 4;
+					// trsY -= 0.09 * scale / 4;
+
+
 	            }
 
+	           
 	            _ScaleTransform();
             }
 
@@ -254,8 +274,8 @@ var mapperIni = (function(){
 				var currPoint = canvas.getPointer(mouseEvent.e);
 
 
-				trsY = (state.gripPoint.y - currPoint.y) / scale;
-				trsX = (state.gripPoint.x - currPoint.x) / scale;
+				trsY = (state.gripPoint.y - currPoint.y) / 1;
+				trsX = (state.gripPoint.x - currPoint.x) / 1;
 
 				_ScaleTransform();
 
@@ -515,7 +535,7 @@ var mapperIni = (function(){
 	// Вспомогательная функция для получения координат, учитывающих текущий масштаб
 	function _convertPointToRelative(point, object) {
 
-		return { x: (point.x - object.left) / scale, y: (point.y - object.top) / scale };
+		return { x: point.x - object.left, y: point.y - object.top };
 
 	};
 
@@ -663,6 +683,8 @@ var mapperIni = (function(){
 				$('.tool-palette .active').removeClass('active');
 			
 			}
+
+			state.currentTool = eventEl.attr('data-tool');
 
 			if(eventEl.attr('data-tool') != "pencil") {
 				canvas.isDrawingMode = false;
