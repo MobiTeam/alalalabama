@@ -5,16 +5,12 @@
 $(document).ready(function(){
 
 	var settings = {
-		width : 800,
-		height: 600,
 		id: 'canvas-ini',
-		showMessage: true
+		showMessage: true,
+		fixedSize: false
  	}
 		
- 	// // i18n.setLocale('ru-RU');
- 	// i18n.setLocale('en-EN');
-
-	if(mapperIni.set())
+ 	if(mapperIni.set(settings))
 		if(mapperIni.init()) {
 
 		}	 		

@@ -2,7 +2,7 @@
 // Базовый модуль, включающий методы инициализации и рисования  [05.04.2016]  ///
 /////////////////////////////////////////////////////////////////////////////////
 
-var mapperIni = (function(){
+var mapperIni = (function($){
 
 	// переменные модуля
 	{ 
@@ -11,12 +11,12 @@ var mapperIni = (function(){
 		canvas, // холст canvas fabric.js
 			
 		// определение настроек
-		uSettings = null,
-		dSettigns = {
+		uSettings = {
 			width: $('#canvas-ini').width(),
 			height: $('#canvas-ini').height(),
 			id: 'canvas-ini',
-			showMessage: true
+			showMessage: true,
+			fixedSize: false
 		}, 
 
 		// текущее состояние
@@ -44,12 +44,6 @@ var mapperIni = (function(){
 		var msg = "";
 
 		$('.service_title').html(plc.mn.descr);
-
-		uSettings = uSettings || dSettigns;
-
-		uSettings.id = uSettings.id || dSettigns.id;
-		uSettings.width = uSettings.width || dSettigns.id;
-		uSettings.height = uSettings.height || dSettigns.id;
 
 		if($("#" + uSettings.id).size() == 1) {
 
@@ -90,13 +84,9 @@ var mapperIni = (function(){
 
 		if(_checkParametres(parametres)) {
 
-			uSettings = uSettings || dSettigns;
-
-			uSettings.className = uSettings.className || dSettigns.className;
-			uSettings.width = parseInt(uSettings.width || dSettigns.width);
-			uSettings.height = parseInt(uSettings.height || dSettigns.width);
-
+			$.extend(uSettings, parametres);
 			return true;
+		
 		} 
 
 		return false;
@@ -207,8 +197,6 @@ var mapperIni = (function(){
 
 	            	h = canvas.getHeight();
 					w = canvas.getWidth();
-
-					console.log(h + " " + w);
 
 					// trsX -= 0.09 * scale / 4;
 					// trsY -= 0.09 * scale / 4;
@@ -715,7 +703,6 @@ var mapperIni = (function(){
 		
 		if(isObject(parametres)) {
 			
-			uSettings = parametres;
 			logger(msg); 
 			if(uSettings.showMessage) s_alert(msg, {theme: 'greenTheme', life: 2500})
 			return true;
@@ -723,7 +710,6 @@ var mapperIni = (function(){
 		} else if(isEmpty(parametres)) {
 
 			msg = plc.st.set_def;
-			uSettings = dSettigns;
 			logger(msg); 
 			if(uSettings.showMessage) s_alert(msg, {theme: 'greenTheme', life: 2500})
 			return true;
@@ -742,11 +728,13 @@ var mapperIni = (function(){
 	// обновить размеры canvas
 	function _updateCanvasSize(height, width) {
 
-		canvas.setHeight(height || $('#canvas-ini').height());
-		canvas.setWidth(width || $('#canvas-ini').width());
-		canvas.calcOffset();
-		canvas.renderAll();
+		if(!uSettings.fixedSize){
+			canvas.setHeight(height || $('#canvas-ini').height());
+			canvas.setWidth(width || $('#canvas-ini').width());
+			canvas.calcOffset();
+			canvas.renderAll();
+		}		
 
 	}
 
-}())
+}(jQuery))
