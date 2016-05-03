@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////
-// Basic object for localization  [19.03.2016]  ///
+// Basic object for placeholders  [19.03.2016]  ///
 ///////////////////////////////////////////////////
 
 var i18n = (function(){
@@ -24,7 +24,8 @@ var i18n = (function(){
 			cursor: 'Курсор',
 			drarea: 'Лассо',
 			drrect: 'Прямоугольник',
-			transfer: 'Перенос'
+			transfer: 'Перенос',
+			path: 'Нарисовать путь'
 		},
 		err: {
 			ftl: 'Критическая ошибка',
@@ -67,7 +68,8 @@ var i18n = (function(){
 			cursor: 'Cursor',
 			drarea: 'Lasso',
 			drrect: 'Rectangle',
-			transfer: 'Transfer'
+			transfer: 'Transfer',
+			path: 'Draw path'
 		},
 		err: {
 			ftl: 'Critical error',

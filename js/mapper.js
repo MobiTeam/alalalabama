@@ -26,7 +26,8 @@ var mapperIni = (function($){
 			keyPressed: [],
 			currentTool: null,
 			isAnimating: false,
-			gripPoint: null
+			gripPoint: null,
+			isBusy: false
 		},
 
 		// параметры масштабирования
@@ -121,6 +122,10 @@ var mapperIni = (function($){
 					_gripCanvas(event);
 				break;
 
+				case 'path':
+					_drawPoint(event);
+				break;
+
 				default:
 				break;
 			}
@@ -139,6 +144,20 @@ var mapperIni = (function($){
 
 				case 'transfer':
 					_transferCanvas(event)
+				break;
+
+				case 'path':
+					
+					// if(!state.isBusy) {
+
+					// 	state.isBusy = true;
+					// 	setTimeout(function() {
+							_redrawPath(event);
+							//console.log(state.currentObject);
+					// 	}, 5);
+
+					// }
+										
 				break;
 
 				default:
@@ -169,6 +188,10 @@ var mapperIni = (function($){
 
 				case 'transfer':
 					_unGripCanvas();
+				break;
+
+				case 'path':
+					
 				break;
 
 				default: 
@@ -218,14 +241,19 @@ var mapperIni = (function($){
 			if (state.keyPressed.indexOf(event.keyCode) == -1) {
 				state.keyPressed.push(event.keyCode);
 			}
-			
+
+
+			if(_getCurrentTool() === "path") {
+				_finishDrawLine();
+			}
+
 
 			if(state.currentAction === "edit") {
 
 				_finishDrawShape(event);
 
 			} else {
-
+	
 				if(event.keyCode == 46) lib_removeElement(canvas);
 
 			}
@@ -246,6 +274,114 @@ var mapperIni = (function($){
 			_updateCanvasSize();
 
 		})
+
+		function _finishDrawLine() {
+			canvas.remove(state.currentObject);
+			canvas.renderAll();
+			$('.tool-palette .active').removeClass('active');
+			state.currentTool = null;
+			_resetAction();
+		}
+
+		function _filterObjects(tag, tagValue) {
+
+			if(tag && tagValue) {
+
+				var objects = canvas.getObjects(), 
+					filteredObjects = [];
+
+				$.each(objects, function(index, el) {
+					if(el.get(tag) && el.get(tag) === tagValue) {
+						filteredObjects.push(el);
+					}
+				})
+
+				return filteredObjects;
+
+			}
+
+		}
+
+
+		function _redrawPath(mouseEvent) {
+
+			var pathNodes = _filterObjects('elType', 'pathNode'),
+				pos = canvas.getPointer(mouseEvent.e),
+				min = Number.MAX_VALUE,
+				activeNode = null;
+
+			$.each(pathNodes, function(index, el) {
+				
+				var elPt = {
+						x: el.get('left'),
+						y: el.get('top')
+					}, 
+					dist = calcDecart(elPt, pos);
+
+				if(min > dist) {	
+					min = dist;
+					activeNode = el; 
+				}
+
+			});
+
+			if(activeNode) {
+				if(!state.currentObject) {
+
+					state.currentObject = new fabric.Line([activeNode.get('left'), activeNode.get('top'), pos.x, pos.y], {
+			            stroke: 'blue',
+			            hasControls: false,
+			            hasBorders: false,
+			            lockMovementX: true,
+			            lockMovementY: true,
+			            hoverCursor: 'default'
+			        });
+
+					canvas.add(state.currentObject);
+
+				} else {
+
+					state.currentObject.set('x1', activeNode.get('left'));
+					state.currentObject.set('y1', activeNode.get('top'));
+					state.currentObject.set('x2', pos.x);
+					state.currentObject.set('y2', pos.y);
+
+				}
+				
+				canvas.renderAll();
+
+			}
+
+			state.isBusy = false; 			
+
+		}
+
+		// нарисовать точку
+		function _drawPoint(mouseEvent) {
+
+			var pos = canvas.getPointer(mouseEvent.e),
+				circle = new fabric.Circle({
+					elType: "pathNode",
+					left: pos.x,
+					top: pos.y,
+					fill: 'red',
+					originX: 'center',
+					originY: 'center',
+					hasControls: false,
+			        hasBorders: false,
+			        selectable: false,
+			        lockMovementX: true,
+			        lockMovementY: true,
+					radius: 5 * scale,
+					hoverCursor: 'default'
+				});
+
+			canvas.add(circle);
+
+			state.currentObject = null;
+
+
+		}
 
 		// взять холст за точку
 		function _gripCanvas(mouseEvent) {
@@ -620,6 +756,13 @@ var mapperIni = (function($){
 				html: '<i class="glyphicon glyphicon-unchecked"></i>'
 			}).appendTo(button_block),
 
+			btn_draw_path = $('<button/>', {
+				class: 'btn btn-default',
+				title: plc.btn.path,
+				"data-tool": "path",
+				html: '<i class="glyphicon glyphicon-minus"></i>'
+			}).appendTo(button_block),
+
 			btn_load = $('<button/>', {
 				class: 'btn btn-success',
 				title: plc.btn.load_img,
@@ -678,7 +821,9 @@ var mapperIni = (function($){
 				canvas.isDrawingMode = false;
 			} 
 
-			if(eventEl.attr('data-tool') == "lasso" || eventEl.attr('data-tool') == "rectangle" || eventEl.attr('data-tool') == "transfer") {
+			var toolsWithDisabledSelection = ["lasso", "rectangle", "transfer", "path"];
+
+			if(toolsWithDisabledSelection.indexOf(eventEl.attr('data-tool')) != -1) {
 				canvas.selection = false;
 			} else {
 				canvas.selection = true;
